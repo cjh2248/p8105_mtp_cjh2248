@@ -20,7 +20,8 @@ library(httr)
 jan_2015_zillow = 
   read_csv("zillow/zhvi_2015.csv", show_col_types = FALSE) |>
   clean_names() |>
-  drop_na()
+  drop_na() |>
+  select(zip_code = region_name, everything()) 
 ```
 
 ```{r}
@@ -28,11 +29,6 @@ aug_2023_zillow =
   read_csv("zillow/zhvi_2023.csv", show_col_types = FALSE) |>
   clean_names() |>
   drop_na()
-
-
-jan2015_aug2023_df = 
-  left_join(jan_2015_zillow, aug_2023_zillow, by = "region_id")
-
 ```
 
 ```{r}
@@ -46,16 +42,23 @@ nyc_zip_codes |>
   first() |>
   slice(-1) |>
   as_tibble()
+```
 
+
+```{r}
 table_nyc_zip_codes <- table_nyc_zip_codes %>%
-  mutate(Borough = case_match(
-    County,  
-    "New York" ~ "Manhattan",
-    "Kings" ~ "Brooklyn",
-    "Bronx" ~ "Bronx",
-    "Queens" ~ "Queens",
-    "Richmond" ~ "Staten Island"
-  ))
+  mutate(Borough = case_when(
+    County == "New York" ~ "Manhattan",
+    County == "Kings" ~ "Brooklyn",
+    County == "Bronx" ~ "Bronx",
+    County == "Queens" ~ "Queens",
+    County == "Richmond" ~ "Staten Island"
+  )) %>%
+  select(Zipcode = Zipcode, everything())
 
+jan2015_zipcodes_df = 
+  left_join(jan_2015_zillow, table_nyc_zip_codes, by = "Zipcode")
+
+print(jan2015_zipcodes_df)
 ```
 
