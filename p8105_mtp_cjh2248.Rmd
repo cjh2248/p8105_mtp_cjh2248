@@ -16,19 +16,22 @@ library(rvest)
 library(httr)
 ```
 
+## Problem 1 
 ```{r}
 jan_2015_zillow = 
   read_csv("zillow/zhvi_2015.csv", show_col_types = FALSE) |>
   clean_names() |>
   drop_na() |>
-  select(zip_code = region_name, everything()) 
+  select(Zipcode = region_name, -state_name, everything()) 
 ```
 
 ```{r}
 aug_2023_zillow = 
   read_csv("zillow/zhvi_2023.csv", show_col_types = FALSE) |>
   clean_names() |>
-  drop_na()
+  drop_na() |>
+  select(Zipcode = region_name, everything()) |>
+  mutate(Zipcode = as.integer(Zipcode))
 ```
 
 ```{r}
@@ -61,4 +64,53 @@ jan2015_zipcodes_df =
 
 print(jan2015_zipcodes_df)
 ```
+For the first steps, I decided to import the Zillow data and rename the files for easy access. Once I examined the data, I used read_csv and janitor::clean names to clean it up. Then, I renamed one of the column names from region_name to Zipcode so I can easily combine the table together with zip codes. When importing the zipcodes data online, I copied the url from the P8105 website and extracted the table. I sliced one of the first rows as it contained text that was not needed. Finally, I used left_join to combine the two tables: jan_2015_zillow and table_nyc_zip_codes. 
+
+```{r}
+nrow(jan2015_zipcodes_df) 
+
+unique_zipcodes_count <- jan2015_zipcodes_df %>%
+  pull(Zipcode) %>%
+  unique() %>%
+  length()
+
+print(unique_zipcodes_count)
+
+unique_neighborhood_count <- jan2015_zipcodes_df %>%
+  pull(Neighborhood) %>%
+  unique() %>%
+  length()
+
+print(unique_neighborhood_count)
+```
+ Some of the key findings of this combined table are the total number of observations, unique zip codes, and unique neighborhoods. We found that there are 49 observations, 48 unqiue zip codes, and 20 unique neighborhoods. 
+ 
+```{r}
+aug2023_zipcodes_df = 
+  left_join(aug_2023_zillow, table_nyc_zip_codes, by = "Zipcode")
+
+print(aug2023_zipcodes_df)
+```
+ 
+For the US 2023 housing data, I tidied the data using the same process of read_csv, janitor::clean_names, and renaming the column of region_name to Zipcode for easier access. Another step I encountered was shifting from the character column to an integer column. 
+
+## Problem 2 
+The reasoning behind why 116 months might not be accounted for in both 2015 and 2023 can be due to the time difference betweent the two. The way data is collected and recorded could have vastly changed between this period and as a result, there might be gaps or missing information. Additionally, there could have been been a shift in management and system at Zillow that might impact the numbers. 
+
+
+```{r}
+rental_data_2015 <- jan_2015_zillow %>%
+  select(county_name, starts_with("x2015")) %>%
+  group_by(county_name)
+
+
+rental_data_2015_summary <- rental_data_2015 %>%
+  select(county_name, starts_with("x2015")) %>%
+  rowwise() %>%
+  mutate(average_rental_price = mean(c_across(starts_with("x2015")), na.rm = TRUE)) %>%
+  ungroup() 
+
+print(rental_data_2015_summary)
+```
+
 
