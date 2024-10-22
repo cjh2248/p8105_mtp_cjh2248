@@ -106,11 +106,14 @@ rental_data_2015 <- jan_2015_zillow %>%
 
 rental_data_2015_summary <- rental_data_2015 %>%
   select(county_name, starts_with("x2015")) %>%
-  rowwise() %>%
-  mutate(average_rental_price = mean(c_across(starts_with("x2015")), na.rm = TRUE)) %>%
-  ungroup() 
+  group_by(county_name) %>%  # Grouping by county name
+  summarize(average_rental_price = mean(c_across(starts_with("x2015")), na.rm = TRUE)) 
 
 print(rental_data_2015_summary)
+
+knitr::kable(rental_data_2015_summary, 
+             col.names = c("Borough", "Average Rental Price"),
+             caption = "Average Rental Price by Borough")
 ```
 
 
