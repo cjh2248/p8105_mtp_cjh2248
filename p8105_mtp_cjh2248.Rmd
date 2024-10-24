@@ -8,7 +8,6 @@ date: "2024-10-20"
 library(tidyverse)
 library(dplyr)
 library(rnoaa)
-library(dplyr)
 library(ggplot2)
 library(readr)
 library(janitor)
@@ -47,7 +46,6 @@ nyc_zip_codes |>
   as_tibble()
 ```
 
-
 ```{r}
 table_nyc_zip_codes <- table_nyc_zip_codes %>%
   mutate(Borough = case_when(
@@ -55,15 +53,19 @@ table_nyc_zip_codes <- table_nyc_zip_codes %>%
     County == "Kings" ~ "Brooklyn",
     County == "Bronx" ~ "Bronx",
     County == "Queens" ~ "Queens",
-    County == "Richmond" ~ "Staten Island"
+    County == "Richmond" ~ "Staten Island", 
+    TRUE ~ NA_character_
   )) %>%
   select(Zipcode = Zipcode, everything())
+
+colnames(table_nyc_zip_codes)
 
 jan2015_zipcodes_df = 
   left_join(jan_2015_zillow, table_nyc_zip_codes, by = "Zipcode")
 
 print(jan2015_zipcodes_df)
 ```
+
 For the first steps, I decided to import the Zillow data and rename the files for easy access. Once I examined the data, I used read_csv and janitor::clean names to clean it up. Then, I renamed one of the column names from region_name to Zipcode so I can easily combine the table together with zip codes. When importing the zipcodes data online, I copied the url from the P8105 website and extracted the table. I sliced one of the first rows as it contained text that was not needed. Finally, I used left_join to combine the two tables: jan_2015_zillow and table_nyc_zip_codes. 
 
 ```{r}
@@ -106,14 +108,48 @@ rental_data_2015 <- jan_2015_zillow %>%
 
 rental_data_2015_summary <- rental_data_2015 %>%
   select(county_name, starts_with("x2015")) %>%
-  group_by(county_name) %>%  # Grouping by county name
+  group_by(county_name) %>%
   summarize(average_rental_price = mean(c_across(starts_with("x2015")), na.rm = TRUE)) 
 
 print(rental_data_2015_summary)
 
 knitr::kable(rental_data_2015_summary, 
              col.names = c("Borough", "Average Rental Price"),
-             caption = "Average Rental Price by Borough")
+             caption = "Average Rental Price by Borough in 2015")
+```
+
+From the table, we can observe that New York County is the highest average rental price in 2015. The lowest is Queens. 
+
+```{r}
+rental_data_2023 <- aug_2023_zillow %>%
+  select(county_name, starts_with("x2023")) %>%
+  group_by(county_name)
+
+rental_data_2023_summary <- rental_data_2023 %>%
+  select(county_name, starts_with("x2023")) %>%
+  mutate(across(starts_with("x2023"), as.numeric)) %>%  
+  group_by(county_name) %>%
+  summarize(average_rental_price = mean(c_across(starts_with("x2023")), na.rm = TRUE), .groups = "drop")
+
+print(rental_data_2023_summary)
+
+knitr::kable(rental_data_2023_summary, 
+             col.names = c("Borough", "Average Rental Price"),
+             caption = "Average Rental Price by Borough in 2023")
+```
+
+
+## Problem 3
+
+```{r}
+ggplot(rental_data_2015_summary, aes(x = county_name, y = average_rental_price)) +
+  stat_summary(fun = "mean", geom = "bar", position = "dodge", aes(fill = county_name)) +  
+  labs(title = "Average NYC Rental Prices by Borough and Year",
+       x = "County",
+       y = "Average Rental Price",
+       fill = "Borough") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
 
 
